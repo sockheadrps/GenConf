@@ -1,0 +1,17 @@
+.venv/
+# all files in data
+data/
+
+# typical python ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+
+# do we typically ignore the .egg-info folder?
+*.egg-info/
+
+# ignore the .DS_Store file
+.DS_Store
