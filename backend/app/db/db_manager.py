@@ -2,16 +2,27 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 from ..config.generator_list import generators
+import os
+from pathlib import Path
 
 class DatabaseManager:
     def __init__(self):
-        self.data_dir = Path("data")
+        base_dir = Path(os.path.dirname(os.path.abspath(__file__))).parent
+        self.data_dir = base_dir / "data"
         self.data_dir.mkdir(exist_ok=True)
         self.current_db = self.data_dir / "equipment_check.db"
         self.connection = None
         self.months = ['january', 'february', 'march', 'april', 'may', 'june',
                       'july', 'august', 'september', 'october', 'november', 'december']
         self.available_tables = []
+        self.gen_names = [
+            "GEN-A3", "GEN-A2", "GEN-B3", "GEN-B2", "GEN-C3", "GEN-C2",
+            "GEN-D3", "GEN-D2", "GEN-R3", "GEN-R2", "GEN-A1", "GEN-B1",
+            "GEN-C1", "GEN-D1", "GEN-E2", "GEN-R1", "GEN-H3", "GEN-I3",
+            "GEN-J3", "GEN-G3", "GEN-F3", "GEN-E3"
+        ]
+        self.pre_columns = ["fuel_level", "battery_vdc", "run_hours", "coolant_temp", "leaks", "oil_check", "notes", "last_updated"]
+        self.post_columns = ["fuel_level", "battery_vdc", "run_hours", "coolant_temp", "leaks", "notes", "last_updated"]
         self.init_db()
 
     def init_db(self):
@@ -71,6 +82,7 @@ class DatabaseManager:
             # Update available tables list
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             self.available_tables = [table[0] for table in cursor.fetchall()]
+
 
     def save_check_data(self, generator: str, pre_data: dict, post_data: dict):
         """Save pre and post run check data to database."""
@@ -171,18 +183,26 @@ class DatabaseManager:
         cursor = self.connection.cursor()
         
         # Get pre-run data
-        pre_table = f"{month}_{generator.replace('-', '_').lower()}_pre"
-        cursor.execute(f"SELECT * FROM {pre_table}")
-        pre_records = cursor.fetchall()
-        cursor.execute(f"PRAGMA table_info({pre_table})")
-        pre_columns = [col[1] for col in cursor.fetchall()]
+        try:    
+            pre_table = f"{month}_{generator.replace('-', '_').lower()}_pre"
+            cursor.execute(f"SELECT * FROM {pre_table}")
+            pre_records = cursor.fetchall()
+            cursor.execute(f"PRAGMA table_info({pre_table})")
+            pre_columns = [col[1] for col in cursor.fetchall()]
+        except sqlite3.OperationalError as e:
+            print(f"Error getting pre-run data: {e}")
+            return None
         
         # Get post-run data  
-        post_table = f"{month}_{generator.replace('-', '_').lower()}_post"
-        cursor.execute(f"SELECT * FROM {post_table}")
-        post_records = cursor.fetchall()
-        cursor.execute(f"PRAGMA table_info({post_table})")
-        post_columns = [col[1] for col in cursor.fetchall()]
+        try:
+            post_table = f"{month}_{generator.replace('-', '_').lower()}_post"
+            cursor.execute(f"SELECT * FROM {post_table}")
+            post_records = cursor.fetchall()
+            cursor.execute(f"PRAGMA table_info({post_table})")
+            post_columns = [col[1] for col in cursor.fetchall()]
+        except sqlite3.OperationalError as e:
+            print(f"Error getting post-run data: {e}")
+            return None
 
         # Create list of dictionaries with proper column names
         pre_data = {}

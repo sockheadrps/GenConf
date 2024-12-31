@@ -1,0 +1,21 @@
+---
+title: "HTML Table from CSV"
+format: html
+jupyter: python3
+---
+
+# HTML Table Example
+
+The following table is dynamically generated from a CSV file using Python and Pandas.
+
+```{python}
+import pandas as pd
+
+# Load the CSV file
+csv_file = "data.csv"
+df = pd.read_csv(csv_file)
+
+# Display the data as an HTML table
+df.to_html(index=False, classes='table table-bordered', border=0)
+```
+

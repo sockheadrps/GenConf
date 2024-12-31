@@ -15,7 +15,19 @@
 		Skeleton,
 		ListPlaceholder
 	} from 'flowbite-svelte';
+  import { fade, fly, scale } from 'svelte/transition';
+
 	import { InfoCircleSolid } from 'flowbite-svelte-icons';
+	import { page } from '$app/state';
+	const month = page.url.searchParams.get('month');
+	const generator = page.url.searchParams.get('gen');
+	// if query param exists, make gen = GEN-generator
+	let gen = '';
+	if (generator) {
+		gen = `GEN-${generator?.charAt(0).toUpperCase() + generator?.slice(1)}`;
+	}
+	console.log(month);
+	console.log(gen);
 
 	let selectedDate: Date | null = new Date();
 
@@ -70,7 +82,7 @@
 
 	async function fetchCompletedGenerators() {
 		// /records/{month} lowercase month
-		const uri = `http://127.0.0.1:8000/records/${getCurrentMonth().toLowerCase()}`;
+		const uri = `http://127.0.0.1:8100/records/${getCurrentMonth().toLowerCase()}`;
 		const response = await fetch(uri);
 		const data = await response.json();
 		return data.records;
@@ -225,7 +237,7 @@
 		completed_generators = await fetchCompletedGenerators();
 		console.log(completed_generators);
 		try {
-			const uri = 'http://127.0.0.1:8000/generators';
+			const uri = 'http://127.0.0.1:8100/generators';
 			const response = await fetch(uri);
 
 			if (!response.ok) {
@@ -297,7 +309,7 @@
 		const data = {
 			generator: selectedGenerator,
 			date: selectedDate,
-			month: getCurrentMonth(),
+			month: month ? month : getCurrentMonth(),
 			preRunData: {
 				...preRunData,
 				leaks: preRunData.leaks === 'Yes'
@@ -308,7 +320,7 @@
 			}
 		};
 		console.log('Data to send:', data);
-		const uri = 'http://127.0.0.1:8000/record';
+		const uri = 'http://127.0.0.1:8100/record';
 		const response = await fetch(uri, {
 			method: 'POST',
 			headers: {
@@ -319,7 +331,7 @@
 		if (response.ok) {
 			await populateGenerators();
 			selectedGenerator = '';
-			selectedDate = '';
+			selectedDate = new Date();
 			preRunData = {
 				fuel_level: 50,
 				battery_vdc: '',
@@ -392,7 +404,6 @@
 			// Add click handler for menu items
 			dropdownMenu?.addEventListener('click', (e) => {
 				if (dropdownMenu) {
-					console.log('closing dropdown');
 					dropdownMenu.style.display = 'none';
 				}
 			});
@@ -416,12 +427,79 @@
 			dropdownMenu.style.display = dropdownVisible ? 'block' : 'none';
 		}
 	}
-	$: console.log(dropdownVisible);
+	async function getSelectedGeneratorData(selectedGenerator: string, month: string) {
+		if (!ready) return;
+		const uri = `http://127.0.0.1:8100/gen_data/${month}/${selectedGenerator}`;
+		try {
+			const response = await fetch(uri);
+			if (response.status === 404) {
+				preRunData = {
+					fuel_level: 50,
+					battery_vdc: '',
+					run_hours: undefined,
+					coolant_temp: undefined,
+					leaks: 'No',
+					oil_check: oil_check[0],
+					notes: ''
+				};
+				postRunData = {
+					fuel_level: 50,
+					battery_vdc: '',
+					run_hours: undefined,
+					coolant_temp: undefined,
+					leaks: false,
+					notes: ''
+				};
+				return;
+			} else {
+				const data = await response.json();
+				console.log(data);
+				console.log(data.pre.oil_check);
+				// if data.pre.oil_check is true, then oil_check is unacceptable, otherwise it is acceptable
+				if (data.pre.oil_check) {
+					preRunData = {
+						...data.pre,
+						leaks: data.pre.leaks ? 'Yes' : 'No',
+						oil_check: oil_check[0]
+					};
+				} else {
+					preRunData = {
+						...data.pre,
+						leaks: data.pre.leaks ? 'Yes' : 'No',
+						oil_check: oil_check[0]
+					};
+				}
+
+				postRunData = {
+					...data.post,
+					leaks: data.post.leaks ? 'Yes' : 'No'
+				};
+			}
+		} catch (error) {
+			console.error('Error fetching generator data:', error);
+		}
+	}
+
+	$: if (month && ready && gen !== '') {
+		console.log('getting not', gen);
+		selectedGenerator = gen.replace('GEN-', '');
+		console.log(completed_generators);
+	}
+
+	$: if (selectedGenerator && ready) {
+		console.log('getting data');
+		getSelectedGeneratorData(selectedGenerator, getCurrentMonth().toLowerCase());
+	}
+
+	$: if (preRunData.oil_check) {
+		console.log(preRunData.oil_check);
+	}
 </script>
 
 <div
 	class="container z-10 mx-auto mt-10 min-h-[80vh] max-w-5xl rounded-lg bg-gray-900 p-6 shadow-lg"
 	class:hidden={!ready}
+	in:fade={{ duration: 300 }}
 >
 	<Badge large color="indigo">{getCurrentMonth()}</Badge>
 
@@ -598,8 +676,9 @@
 								bind:value={preRunData.leaks}
 								class="mt-2 w-full rounded-md border border-gray-600 bg-gray-800 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
-								<option value={false}>No</option>
-								<option value={true}>Yes</option>
+								{#each leaks as leak}
+									<option value={leak}>{leak}</option>
+								{/each}
 							</Select>
 						</div>
 						<div>
@@ -724,8 +803,9 @@
 								bind:value={postRunData.leaks}
 								class="mt-2 w-full rounded-md border border-gray-600 bg-gray-800 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
-								<option value={false}>No</option>
-								<option value={true}>Yes</option>
+								{#each leaks as leak}
+									<option value={leak}>{leak}</option>
+								{/each}
 							</Select>
 						</div>
 						<div>

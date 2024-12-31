@@ -7,11 +7,10 @@ jupyter: python3
 ## Generator R2 Data Visualization
 
 This visualization shows pre-run and post-run data for Generator R2.
+Row {height=60%}
 
 ```{python}
 
-
-Row {height=60%}
 
 
 
