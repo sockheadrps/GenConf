@@ -1,6 +1,5 @@
 .venv/
 # all files in data
-data/
 
 # typical python ignores
 __pycache__/
@@ -15,3 +14,7 @@ __pycache__/
 
 # ignore the .DS_Store file
 .DS_Store
+
+# svelte related ignores
+node_modules/
+svelte-kit/
