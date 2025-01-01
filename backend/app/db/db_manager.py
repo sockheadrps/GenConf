@@ -235,7 +235,7 @@ class DatabaseManager:
         }
     
     def all_gen_data(self, month: str, completed_only: bool = False):
-        """Return the data for a specific generator and month"""
+        """Return the data for all generators and month"""
         cursor = self.connection.cursor()
         generators = [
             "GEN-A3", "GEN-A2", "GEN-B3", "GEN-B2", "GEN-C3", "GEN-C2",

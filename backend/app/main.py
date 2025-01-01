@@ -37,7 +37,7 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5174"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
@@ -120,4 +120,4 @@ async def get_gen_data(month: str, generator: str):
                             month} and generator {generator}")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8100)
+    uvicorn.run(app, host="localhost", port=8100)

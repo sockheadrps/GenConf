@@ -4,3 +4,6 @@ generators = [
     "GEN-C1", "GEN-D1", "GEN-E2", "GEN-R1", "GEN-H3", "GEN-I3",
     "GEN-J3", "GEN-G3", "GEN-F3", "GEN-E3"
 ]
+
+# gallons
+generator_fuel_capacity = 8983

@@ -29,7 +29,6 @@ fastapi-cli==0.0.7
 fastjsonschema==2.21.1
 fonttools==4.55.3
 fqdn==1.5.1
--e git+https://github.com/sockheadrps/GenConf.git@d54a7f39993783ac8d33820224d0b2fbe0f26d0d#egg=genconf
 h11==0.14.0
 httpcore==1.0.7
 httptools==0.6.4
