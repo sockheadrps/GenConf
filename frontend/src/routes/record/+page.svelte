@@ -15,7 +15,7 @@
 		Skeleton,
 		ListPlaceholder
 	} from 'flowbite-svelte';
-  import { fade, fly, scale } from 'svelte/transition';
+	import { fade, fly, scale } from 'svelte/transition';
 
 	import { InfoCircleSolid } from 'flowbite-svelte-icons';
 	import { page } from '$app/state';
@@ -26,16 +26,16 @@
 	if (generator) {
 		gen = `GEN-${generator?.charAt(0).toUpperCase() + generator?.slice(1)}`;
 	}
-	console.log(month);
-	console.log(gen);
 
-	let selectedDate: Date | null = new Date();
+	let CURRENT_MONTH = $state('december');
 
-	let leaks = ['Yes', 'No'];
-	let oil_check = ['acceptable', 'unacceptable'];
+	let selectedDate = $state<Date | null>(new Date());
 
-	let generators: string[] = [];
-	let selectedGenerator = '';
+	let leaks = $state(['Yes', 'No']);
+	let oil_check = $state(['acceptable', 'unacceptable']);
+
+	let generators = $state<string[]>([]);
+	let selectedGenerator = $state('');
 	type RunData = {
 		fuel_level: number;
 		battery_vdc: string | undefined;
@@ -45,8 +45,7 @@
 		oil_check: string;
 		notes: string;
 	};
-
-	let preRunData: RunData = {
+	let preRunData = $state({
 		fuel_level: 50,
 		battery_vdc: '',
 		run_hours: undefined,
@@ -54,8 +53,8 @@
 		leaks: false,
 		oil_check: oil_check[0],
 		notes: ''
-	};
-	let postRunData: RunData = {
+	});
+	let postRunData = $state({
 		fuel_level: 50,
 		battery_vdc: '',
 		run_hours: undefined,
@@ -63,22 +62,22 @@
 		leaks: false,
 		oil_check: oil_check[0],
 		notes: ''
-	};
+	});
 
-	let batteryVdcError = false;
-	let postBatteryVdcError = false;
-	let runHoursError = false;
-	let preRunHoursError = false;
-	let postRunHoursError = false;
-	let coolantTempError = false;
-	let postCoolantTempError = false;
-	let formError = false;
-	let coolantTempAlert = false;
-	let coolantTempAlertShown = false;
-	let runHoursAlert = false;
-	let runHoursAlertShown = false;
+	let batteryVdcError = $state(false);
+	let postBatteryVdcError = $state(false);
+	let runHoursError = $state(false);
+	let preRunHoursError = $state(false);
+	let postRunHoursError = $state(false);
+	let coolantTempError = $state(false);
+	let postCoolantTempError = $state(false);
+	let formError = $state(false);
+	let coolantTempAlert = $state(false);
+	let coolantTempAlertShown = $state(false);
+	let runHoursAlert = $state(false);
+	let runHoursAlertShown = $state(false);
 
-	let completed_generators: string[] = [];
+	let completed_generators = $state<string[]>([]);
 
 	async function fetchCompletedGenerators() {
 		// /records/{month} lowercase month
@@ -88,7 +87,7 @@
 		return data.records;
 	}
 
-	$: isFormValid =
+	let isFormValid = $derived(
 		selectedGenerator &&
 		selectedDate &&
 		preRunData.battery_vdc &&
@@ -103,7 +102,8 @@
 		!preRunHoursError &&
 		!postRunHoursError &&
 		!coolantTempError &&
-		!postCoolantTempError;
+		!postCoolantTempError
+	);
 
 	function validateBatteryVdc(value: string | undefined, isPost: boolean = false) {
 		if (value === undefined) {
@@ -228,10 +228,13 @@
 	function getCurrentMonth() {
 		const date = new Date();
 		const month = date.toLocaleString('default', { month: 'long' });
-		return month;
+		// return month;
+		console.log(CURRENT_MONTH);
+
+		return CURRENT_MONTH;
 	}
 
-	let ready = false;
+	let ready = $state(false);
 
 	async function populateGenerators() {
 		completed_generators = await fetchCompletedGenerators();
@@ -480,20 +483,26 @@
 		}
 	}
 
-	$: if (month && ready && gen !== '') {
-		console.log('getting not', gen);
-		selectedGenerator = gen.replace('GEN-', '');
-		console.log(completed_generators);
-	}
+	$effect(() => {
+		if (month && ready && gen !== '') {
+			console.log('getting not', gen);
+			selectedGenerator = gen.replace('GEN-', '');
+			console.log(completed_generators);
+		}
+	});
 
-	$: if (selectedGenerator && ready) {
-		console.log('getting data');
-		getSelectedGeneratorData(selectedGenerator, getCurrentMonth().toLowerCase());
-	}
+	$effect(() => {
+		if (selectedGenerator && ready) {
+			console.log('getting data');
+			getSelectedGeneratorData(selectedGenerator, getCurrentMonth().toLowerCase());
+		}
+	});
 
-	$: if (preRunData.oil_check) {
-		console.log(preRunData.oil_check);
-	}
+	$effect(() => {
+		if (preRunData.oil_check) {
+			console.log(preRunData.oil_check);
+		}
+	});
 </script>
 
 <div
@@ -507,7 +516,7 @@
 		<div
 			class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 			role="presentation"
-			on:click={() => (coolantTempAlert = false)}
+			onclick={() => (coolantTempAlert = false)}
 		>
 			<Alert color="red" dismissable class="max-w-md" on:dismiss={() => (coolantTempAlert = false)}>
 				<InfoCircleSolid slot="icon" class="h-5 w-5" />
@@ -520,7 +529,7 @@
 		<div
 			class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 			role="presentation"
-			on:click={() => (runHoursAlert = false)}
+			onclick={() => (runHoursAlert = false)}
 		>
 			<Alert color="red" dismissable class="max-w-md" on:dismiss={() => (runHoursAlert = false)}>
 				<InfoCircleSolid slot="icon" class="h-5 w-5" />
@@ -559,7 +568,7 @@
 								completed_generators.includes(generator)
 									? 'text-green-500'
 									: ''}"
-								on:click={() => {
+								onclick={() => {
 									selectedGenerator = generator;
 									toggleDropdown();
 								}}
@@ -577,7 +586,10 @@
 
 	<!-- Combined Pre-run and Post-run Form -->
 	{#if selectedGenerator}
-		<form on:submit|preventDefault={handleSubmit} class="mt-4">
+		<form onsubmit={e => {
+			e.preventDefault();
+			handleSubmit(e);
+		}} class="mt-4">
 			<div class="mb-4">
 				<Datepicker bind:value={selectedDate} />
 			</div>
@@ -833,7 +845,7 @@
 			<div class="mt-8">
 				<Button
 					type="submit"
-					on:click={handleSubmit}
+					onclick={handleSubmit}
 					disabled={!isFormValid}
 					class="bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 w-full rounded-md px-4 py-3 text-gray-100 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
 				>

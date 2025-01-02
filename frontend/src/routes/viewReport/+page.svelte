@@ -20,8 +20,8 @@
 	} from 'flowbite-svelte';
 	import { ChevronDownOutline } from 'flowbite-svelte-icons';
 
-	let month_menu: HTMLElement | null = null;
-	let ready = false;
+	let month_menu = $state<HTMLElement | null>(null);
+	let ready = $state(false);
 	onMount(() => {
 		month_menu = document.getElementById('month-menu');
 		ready = true;
@@ -41,12 +41,12 @@
 		'November',
 		'December'
 	];
-	let selectedMonth = '';
-	let isPreReport = true;
-	let reportType = 'pre';
+	let selectedMonth = $state('');
+	let isPreReport = $state(true);
+	let reportType = $state('pre');
 
-	let showAlert = false;
-	let dropdownOpen = false;
+	let showAlert = $state(false);
+	let dropdownOpen = $state(false);
 
 	interface BaseReportRow {
 		gen_name: string;
@@ -67,10 +67,11 @@
 
 	type ReportRow = PreReportRow | PostReportRow;
 
-	let report: ReportRow[] | null = null;
-	let preReport: ReportRow[] | null = null;
-	let gens_no_data: ReportRow[] | null = null;
+	let report = $state<ReportRow[] | null>(null);
+	let preReport = $state<ReportRow[] | null>(null);
+	let gens_no_data = $state(null);
 
+	let reportTreportType = $state('pre');
 	// Fetch the report JSON and insert it into the component
 	async function getReports(month: string, report_type: string) {
 		month = month.toLowerCase();
@@ -123,16 +124,18 @@
 		const [hours, minutes] = run_hours.split(':').map(Number);
 		return hours * 60 + minutes;
 	}
-
-	$: gens_no_data = report?.filter((row) => row.fuel_level == 0) ?? null;
-	$: reportType = isPreReport ? 'pre' : 'post';
-
-	$: if (selectedMonth) {
-		getReports(selectedMonth, reportType).then((data) => {
-			report = data;
-			if (isPreReport) preReport = data;
-		});
-	}
+	$effect(() => {
+		gens_no_data = report?.filter((row) => row.fuel_level == 0) ?? [];
+		reportType = isPreReport ? 'pre' : 'post';
+	});
+	$effect(() => {
+		if (selectedMonth) {
+			getReports(selectedMonth, reportType).then((data) => {
+				report = data;
+				if (isPreReport) preReport = data;
+			});
+		}
+	});
 
 	function handleGenNoDataClick(gen: string) {
 		window.location.href = `/record?month=${selectedMonth}&gen=${gen}`;

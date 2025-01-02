@@ -47,6 +47,7 @@ def generate_csv(month: str, report_type: str):
                         if "run_hours" in row:
                             row["run_hours"] = str(row["run_hours"])
                         writer.writerow(row)
+    return csv_file_path
 
 
 def gather_gen_data(month: str, report_type: str):
@@ -63,8 +64,38 @@ def gather_gen_data(month: str, report_type: str):
 
 def generate_csv_reports(month: str):
     # Generate reports for "pre" and "post" data
-    generate_csv(month, "pre")
-    generate_csv(month, "post")
+    pre_csv = generate_csv(month, "pre")
+    post_csv = generate_csv(month, "post")
+    return {"pre": pre_csv, "post": post_csv}
+
+
+def generate_excel_reports(month: str):
+    """Generate formatted reports and create a zip file containing them."""
+    month_dir = report_dir / month
+    month_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate CSV and Excel reports
+    generate_csv_reports(month)
+
+    convert_to_excel(month)
+
+    # Create combined report
+    combined_excel = month_dir / f"{month}_report.xlsx"
+    pre_df = pd.read_csv(month_dir / "pre.csv")
+    post_df = pd.read_csv(month_dir / "post.csv")
+    clean_up_csv_files(month)
+
+
+    with pd.ExcelWriter(combined_excel, engine='xlsxwriter') as writer:
+        # Write sheets
+        pre_df.to_excel(writer, index=False, sheet_name='Pre Run')
+        post_df.to_excel(writer, index=False, sheet_name='Post Run')
+        
+        # Format both sheets
+        _format_excel_sheet(writer, pre_df, 'Pre Run')
+        _format_excel_sheet(writer, post_df, 'Post Run')
+        
+    return combined_excel
 
 def convert_to_excel(month: str):
     """Convert CSV reports to Excel files with formatting."""
@@ -88,6 +119,8 @@ def convert_to_excel(month: str):
     with pd.ExcelWriter(post_excel, engine='xlsxwriter') as writer:
         post_df.to_excel(writer, index=False, sheet_name='Post Run')
         _format_excel_sheet(writer, post_df, 'Post Run')
+
+        
 def _format_excel_sheet(writer, df, sheet_name):
     """Helper function to format Excel sheets consistently."""
     workbook = writer.book
@@ -165,6 +198,7 @@ def clean_up_excel_files(month: str):
     pre_excel.unlink()
     post_excel.unlink()
     combined_excel.unlink()
+
 
 def generate_zip_reports(month: str):
     """Generate formatted reports and create a zip file containing them."""
