@@ -129,6 +129,7 @@ async def get_gen_data(month: str, generator: str):
 @app.get("/gen_fuel_estimate/{month}")
 async def get_gen_fuel_estimate(month: str):
     data = FuelEstimator(month).to_json()
+    
     return JSONResponse(content=data)
 
 if __name__ == "__main__":
