@@ -1,4 +1,3 @@
-
 <script lang="ts">
 	import {
 		Card,
@@ -10,7 +9,8 @@
 		Label,
 		A,
 		ToolbarButton,
-		Toggle
+		Toggle,
+		WidgetPlaceholder
 	} from 'flowbite-svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly, scale } from 'svelte/transition';
@@ -78,11 +78,13 @@
 	interface DashboardProps {
 		dataPayload: FuelEstimate;
 	}
-	let dashboardProps: DashboardProps = $state({ dataPayload: {
-		get_estimates: {},
-		total_fuel_needed: 0,
-		estimate_fuel_cost: 0
-	} });
+	let dashboardProps: DashboardProps = $state({
+		dataPayload: {
+			get_estimates: {},
+			total_fuel_needed: 0,
+			estimate_fuel_cost: 0
+		}
+	});
 
 	let fuelEstimate: FuelEstimate = $state({
 		get_estimates: {},
@@ -131,10 +133,8 @@
 	// 	}
 	// });
 
-
 	onMount(async () => {
 		const completed_generators = await fetchCompletedGenerators();
-
 
 		try {
 			const fuelEstimateResponse = await getFuelEstimate();
@@ -149,144 +149,138 @@
 		ready = true;
 	});
 
-
-
 	function getCurrentMonth() {
 		const date = new Date();
 		const month = date.toLocaleString('default', { month: 'long' });
 		return month;
 	}
-
-
-
-</script>	
+</script>
 
 {#if ready}
 	<main
-		class="p-8 bg-gray-50 dark:bg-gray-900 w-screen h-[calc(100vh-100px)]"
+		class="pt-8 bg-gray-50 dark:bg-gray-900 w-screen h-[calc(100vh-80px)]"
 		in:fade={{ duration: 300 }}
 	>
-		<div class="flex justify-center items-center" in:fly={{ y: 20, duration: 400 }}>
-			<Card class="p-8 min-w-[1200px] flex flex-row">
-				<div class="grid lg:grid-cols-2 gap-12 min-w-full">
-					<div in:fly={{ x: -20, duration: 500, delay: 200 }}>
-						<Card class="p-8 shadow-lg min-w-full h-full my-auto">
-							{#if ready && (dashboardProps.dataPayload !== undefined)}
-								<Label class="flex flex-col items-center justify-center text-2xl font-semibold mb-6"> {generatorName}</Label>
-								<Dashboard dataPayload={dashboardProps.dataPayload} parentReady={ready} parentGeneratorName={generatorName} />
+		<div class="flex justify-center items-center  h-fit" in:fly={{ y: 20, duration: 400 }}>
+			<Card class="p-8 min-w-[1200px] flex flex-row h-fit shadow-xl px-2">
+				<div class="grid lg:grid-cols-2 gap-10 min-w-full h-fit">
+					<div class="shadow-xl px-2 min-w-full rounded-lg box-shadow: 10 4px 12px rgba(0, 0, 0, 0.8)" in:fly={{ x: -20, duration: 500, delay: 200 }}>
+						<Card class="p-8 shadow-lg min-w-full h-full my-auto ">
+							{#if ready && dashboardProps.dataPayload !== undefined}
+								<Label
+									class="flex flex-col items-center justify-center text-2xl font-semibold mb-6"
+								>
+									{generatorName || 'Estimate Totals'}</Label
+								>
+								<Dashboard
+									dataPayload={dashboardProps.dataPayload}
+									parentReady={ready}
+									parentGeneratorName={generatorName}
+								/>
 							{:else}
-								<p>Loading...</p>
+								<div
+									class="justify-center align-middle my-auto"
+								>
+									<WidgetPlaceholder divClass="h-full w-full justify-center items-center" />
+								</div>
 							{/if}
-							<!-- <h3 class="text-2xl font-semibold mb-6">Key Features</h3>
-            <Timeline class="space-y-8">
-              <div in:fly={{ x: -20, duration: 300, delay: 400 }}>
-                <TimelineItem title="Generator Data Collection" date="">
-                  <p class="text-lg">
-                    Record pre-run and post-run generator inspections with an easy to use interface
-                  </p>
-                </TimelineItem>
-              </div>
-              <div in:fly={{ x: -20, duration: 300, delay: 500 }}>
-                <TimelineItem title="Monthly Reports" date="">
-                  <p class="text-lg">
-                    Generate detailed monthly reports of generator performance and maintenance records to view in the app or export as an excel file, customized into a table for easy viewing
-                  </p>
-                </TimelineItem>
-              </div>
-              <div in:fly={{ x: -20, duration: 300, delay: 600 }}>
-                <TimelineItem title="Data Analysis" date="">
-                  <p class="text-lg">
-                    Track trends and compare metrics between pre and post run checks, and view historical data to see how generators have performed over time
-                  </p>
-                </TimelineItem>
-              </div>
-              <div in:fly={{ x: -20, duration: 300, delay: 600 }}>
-                <TimelineItem title="Extendable format" date="">
-                  <p class="text-lg">
-                    Means this tool can be customized and configured to record and analyze data as ideas form and new requirements are identified
-                  </p>
-                </TimelineItem>
-              </div>
-            </Timeline> -->
 						</Card>
 					</div>
 
-					<div in:fly={{ x: 20, duration: 500, delay: 200 }}>
-						<Card class="p-8 shadow-lg min-w-full">
-							<h3 class="text-2xl font-semibold mb-8">Quick Actions</h3>
-							<div class="space-y-8">
+					<div class="shadow-xl px-2 min-w-full rounded-lg box-shadow: 2 4px 12px rgba(0, 0, 0, 0.8)" in:fly={{ x: 20, duration: 500, delay: 200 }}>
+						<Card class="p-8 shadow-xl min-w-full rounded-lg box-shadow: 10 8px 12px rgba(0, 0, 0, 0.8)">
+							<h3 class="text-2xl font-semibold mb-4 text-white text-center">Quick Actions</h3>
+							<div class="my-auto">
 								<div in:scale={{ duration: 300, delay: 400 }}>
-									<Button href="/record" size="xl" class="w-full text-xl py-8"
-										>Record Generator Check</Button
+									<Button
+										href="/record"
+										size="xl"
+										class="w-full text-xl my-2 py-8 rounded-lg bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-md hover:shadow-lg transition-all duration-300"
 									>
+										Record Generator Check
+									</Button>
 								</div>
 								<div in:scale={{ duration: 300, delay: 500 }}>
 									<Button
 										href="/viewReport"
 										color="alternative"
 										size="xl"
-										class="w-full text-xl py-8">View Reports</Button
+										class="w-full text-xl py-8 rounded-lg bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:from-blue-500 hover:to-blue-700 shadow-md hover:shadow-lg transition-all duration-300"
 									>
-								</div>
+										View Reports
+									</Button>
 
-								<div
-									class="rounded-lg bg-gray-900/20 px-4 backdrop-blur-sm"
-									in:fade={{ duration: 300, delay: 600 }}
-								>
-									<div class="flex flex-row justify-center items-center w-full py-2">
-										<Toggle onclick={toggleLockGenLinks}>{lockGenLinks ? 'Chart' : 'Record'}</Toggle
-										>
+									<div
+										class="rounded-lg bg-gray-900/20 px-4 backdrop-blur-sm py-4"
+										in:fade={{ duration: 300, delay: 600 }}
+									>
+										<div class="flex flex-row justify-center items-center w-full py-2">
+											<Toggle onclick={toggleLockGenLinks}
+												>{lockGenLinks ? 'Chart' : 'Record'}</Toggle
+											>
+										</div>
+										<List tag="ul" list="none" class="flex flex-wrap gap-2 flex-row">
+											{#each generators as gen}
+												<div
+													in:scale={{ duration: 200, delay: 700 + generators.indexOf(gen) * 50 }}
+												>
+													{#if lockGenLinks}
+														<Li>
+															<button
+																onclick={() =>
+																	completed_generators.includes(gen) && handleGenClick(gen)}
+																class="inline-flex items-center justify-center rounded-full px-2 py-2 text-sm font-medium shadow-md transition-all duration-300
+			{completed_generators.includes(gen)
+																	? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+																	: 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-70'}"
+															>
+																{#if completed_generators.includes(gen)}
+																	<span
+																		class="inline-flex items-center justify-center rounded-full bg-green-500 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-green-600"
+																	>
+																		{gen}
+																	</span>
+																{:else}
+																	<span
+																		class="inline-flex items-center justify-center rounded-full bg-red-500 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-red-600"
+																	>
+																		{gen}
+																	</span>
+																{/if}
+															</button>
+														</Li>
+													{:else}
+														<Li>
+															<A
+																href={`/record?month=${CURRENT_MONTH.toLowerCase()}&gen=${gen}`}
+																class="inline-flex items-center justify-center rounded-full px-2 py-2 text-sm font-medium shadow-md transition-all duration-300
+															{completed_generators.includes(gen)
+																	? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+																	: 'bg-gray-400 text-gray-200  opacity-70'}"
+															>
+																{#if completed_generators.includes(gen)}
+																	<span
+																		class="inline-flex items-center justify-center rounded-full bg-green-500 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-green-600"
+																	>
+																		{gen}
+																	</span>
+																{:else}
+																	<span
+																		class="inline-flex items-center justify-center rounded-full bg-red-500 text-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-red-600"
+																	>
+																		{gen}
+																	</span>
+																{/if}
+															</A>
+														</Li>
+													{/if}
+												</div>
+											{/each}
+										</List>
 									</div>
-									<List tag="ul" list="none" class="flex flex-wrap gap-2 flex-row">
-										{#each generators as gen}
-											<div in:scale={{ duration: 200, delay: 700 + generators.indexOf(gen) * 50 }}>
-												{#if lockGenLinks}
-													<Li>
-														<button
-															onclick={() => completed_generators.includes(gen) && handleGenClick(gen)}
-															class="inline-flex items-center rounded-full bg-blue-800/60 px-3 py-1.5 text-sm font-medium text-blue-100 shadow-sm transition-colors {completed_generators.includes(gen) ? 'hover:bg-blue-800 cursor-pointer' : 'opacity-50 cursor-not-allowed'}"
-														>
-															{#if completed_generators.includes(gen)}
-																<span
-																	class="inline-flex items-center rounded-full bg-green-800/60 px-3 py-1.5 text-sm font-medium text-green-100 shadow-sm transition-colors hover:bg-green-800"
-																>
-																	{gen}
-																</span>
-															{:else}
-																<span
-																	class="inline-flex items-center rounded-full bg-red-800/60 px-3 py-1.5 text-sm font-medium text-red-100 shadow-sm transition-colors"
-																>
-																	{gen}
-																</span>
-															{/if}
-														</button>
-													</Li>
-												{:else}
-													<!-- If lockGenLinks is false, render a link as usual -->
-													<Li>
-														<A href={`/record?month=${CURRENT_MONTH.toLowerCase()}&gen=${gen}`}>
-															{#if completed_generators.includes(gen)}
-																<span
-																	class="inline-flex items-center rounded-full bg-green-800/60 px-3 py-1.5 text-sm font-medium text-green-100 shadow-sm transition-colors hover:bg-green-800"
-																>
-																	{gen}
-																</span>
-															{:else}
-																<span
-																	class="inline-flex items-center rounded-full bg-red-800/60 px-3 py-1.5 text-sm font-medium text-red-100 shadow-sm transition-colors hover:bg-red-800"
-																>
-																	{gen}
-																</span>
-															{/if}
-														</A>
-													</Li>
-												{/if}
-											</div>
-										{/each}
-									</List>
 								</div>
-							</div>
-						</Card>
+							</div></Card
+						>
 					</div>
 				</div>
 			</Card>

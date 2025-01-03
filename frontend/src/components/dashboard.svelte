@@ -1,7 +1,8 @@
 <svelte:options runes={false} />
+
 <script lang="ts">
-  
 	import { onDestroy } from 'svelte';
+	import { fade } from 'svelte/transition';
 
 	interface FuelEstimate {
 		[key: string]: {
@@ -9,6 +10,7 @@
 			fuel_capacity: number;
 			current_fuel_volume: number;
 			fuel_delta: number;
+			run_hours: string;
 		};
 	}
 
@@ -42,6 +44,7 @@
 
 			if (typeof dataPayload === 'object' && dataPayload?.get_estimates) {
 				fuel_estimate = dataPayload.get_estimates;
+				console.log(dataPayload);
 
 				// Calculate total fuel delta and capacity
 				totalFuelDelta = Object.values(fuel_estimate).reduce(
@@ -111,7 +114,7 @@
 							background: '#1f2937'
 						},
 						track: {
-							background: '#374151',
+							background: '#954535',
 							strokeWidth: '97%'
 						},
 						dataLabels: {
@@ -153,6 +156,8 @@
 
 			const generator = fuel_estimate[generatorName];
 			if (!generator) return;
+			const fuelPercentage =
+				((generator.fuel_capacity - generator.fuel_delta) / generator.fuel_capacity) * 100;
 
 			// Destroy the existing chart instance if it exists
 			if (chartInstance) {
@@ -161,7 +166,7 @@
 
 			const options = {
 				chart: {
-					type: 'donut',
+					type: 'radialBar',
 					height: 400,
 					animations: {
 						enabled: true,
@@ -170,44 +175,38 @@
 					},
 					background: 'transparent'
 				},
-				title: {
-					text: `${generator.generator_name} Fuel`,
-					align: 'center',
-					style: {
-						fontSize: '18px',
-						fontWeight: 'bold',
-						color: '#FFFFFF'
+				plotOptions: {
+					radialBar: {
+						startAngle: -120,
+						endAngle: 120,
+						hollow: {
+							size: '70%',
+							background: '#1f2937'
+						},
+						track: {
+							background: '#954535',
+							strokeWidth: '97%'
+						},
+						dataLabels: {
+							name: {
+								offsetY: -10,
+								fontSize: '16px',
+								fontWeight: 'bold',
+								color: '#FFFFFF'
+							},
+							value: {
+								offsetY: 5,
+								fontSize: '18px',
+								fontWeight: 'bold',
+								color: '#34D399',
+								formatter: () => `${fuelPercentage.toFixed(1)}%`
+							}
+						}
 					}
 				},
-				labels: ['Current Fuel Volume', 'Fuel Delta'],
-				series: [generator.current_fuel_volume || 0, generator.fuel_delta || 0],
-				colors: ['#34D399', '#EF4444'], // Green for current fuel, red for delta
-				legend: {
-					position: 'bottom',
-					horizontalAlign: 'center',
-					fontSize: '12px',
-					labels: {
-						colors: ['#FFFFFF']
-					},
-					itemMargin: {
-						vertical: 8
-					}
-				},
-				tooltip: {
-					theme: 'dark',
-					y: {
-						formatter: (val) => `${val.toFixed(0)} gal`
-					}
-				},
-				dataLabels: {
-					enabled: true,
-					style: {
-						fontSize: '14px',
-						fontWeight: 'bold',
-						colors: ['#FFFFFF']
-					},
-					formatter: (val) => `${val.toFixed(1)}%`
-				}
+				series: [fuelPercentage],
+				labels: ['Total fuel needed: ' + totalFuelDelta + ' gal'],
+				colors: ['#34D399'] // Bright green for fuel level
 			};
 
 			// Use dynamic chart container ID
@@ -219,7 +218,7 @@
 		});
 	}
 
-  function updateCostOnSliderUp(generatorName?: string) {
+	function updateCostOnSliderUp(generatorName?: string) {
 		if (generatorName && fuel_estimate) {
 			// Update cost for a specific generator
 			const generator = fuel_estimate[generatorName];
@@ -249,18 +248,27 @@
 	});
 </script>
 
-<div class="dashboard">
+<div class="dashboard"
+in:fade={{ duration: 300 }}
+>
 	{#if parentGeneratorName && fuel_estimate}
 		{#each Object.entries(fuel_estimate) as [key, generator]}
 			{#if key === parentGeneratorName}
-				<div class="chart-container bg-gray-800">
+				<div
+					class="chart-container bg-gray-800"
+					in:fade={{ duration: 300 }}
+				>
+					<div>
+						<p>Run hours: {generator.run_hours}</p>
+					</div>
 					<div id={`chart-${key}`}></div>
 					<p>
-						<strong>{generator.generator_name}</strong> - Cost to fill: $
+						Cost to fill: $
 						{costsToFill[key]?.toFixed(2) || '0.00'}
 					</p>
 					<label for={`price-slider-${key}`}
 						>Price per gallon: $<span id="price-value">{pricePerGallon.toFixed(2)}</span></label
+						
 					>
 					<input
 						type="range"
@@ -275,10 +283,18 @@
 			{/if}
 		{/each}
 	{:else}
-		<div class="chart-container bg-gray-800">
+		<div
+			class="chart-container bg-gray-800"
+			in:fade={{ duration: 300 }}
+		>
 			<div id="summary-chart"></div>
-			<div class="slider-container">
-				<label>Estimated Cost: $<span id="total-cost">{totalCostToFill.toFixed(2)}</span></label>
+			<div class="text-xl">Total Fuel Estimate</div>
+			<div class="slider-container"
+			in:fade={{ duration: 300 }}
+			>
+				<label for="summary-price-slider"
+					>Estimated Cost: $<span id="total-cost">{totalCostToFill.toFixed(2)}</span></label
+				>
 				<label for="summary-price-slider"
 					>Price per gallon: $<span id="price-value">{pricePerGallon.toFixed(2)}</span></label
 				>
@@ -290,6 +306,7 @@
 					step="0.01"
 					bind:value={pricePerGallon}
 					on:mouseup={() => updateCostOnSliderUp()}
+
 				/>
 			</div>
 		</div>

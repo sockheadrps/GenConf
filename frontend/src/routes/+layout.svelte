@@ -241,6 +241,6 @@ function getFileExtension(option) {
 	</nav>
 </header>
 
-<main>
+<main class="h-full m-0 p-0 overflow-clip ">
 	{@render children()}
 </main>
