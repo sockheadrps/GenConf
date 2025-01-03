@@ -6,11 +6,12 @@
 		TimelineItem,
 		List,
 		Li,
+		Label,
 		A,
 		ToolbarButton,
 		Toggle
 	} from 'flowbite-svelte';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { fade, fly, scale } from 'svelte/transition';
 	import GeneratorCharts from '../components/GeneratorCharts.svelte';
 	import FuelChart from '../components/FuelChart.svelte';
@@ -49,7 +50,7 @@
 		const uri = `http://127.0.0.1:8100/records/${CURRENT_MONTH.toLowerCase()}`;
 		const response = await fetch(uri);
 		const data = await response.json();
-		return data.records;
+		completed_generators = data.records;
 	}
 
 	let lockGenLinks = $state(true);
@@ -103,7 +104,7 @@
 		}
 	}
 
-	let generatorName = $state('blah');
+	let generatorName = $state('');
 	let generatorData = $state<FuelEstimate | null>(null);
 	let afterGenClick = $state(false);
 
@@ -131,12 +132,8 @@
 
 
 	onMount(async () => {
-		const response = await fetchCompletedGenerators();
-		if (response.ok) {
-			completed_generators = await response.json();
-		} else {
-			completed_generators = [];
-		}
+		const completed_generators = await fetchCompletedGenerators();
+
 
 		try {
 			const fuelEstimateResponse = await getFuelEstimate();
@@ -151,9 +148,7 @@
 		ready = true;
 	});
 
-	let uncompleted_generators = $derived(
-		generators.filter((gen) => !completed_generators.includes(gen))
-	);
+
 
 	function getCurrentMonth() {
 		const date = new Date();
@@ -162,7 +157,8 @@
 	}
 
 
-</script>
+
+</script>	
 
 {#if ready}
 	<main
@@ -173,9 +169,10 @@
 			<Card class="p-8 min-w-[1200px] flex flex-row">
 				<div class="grid lg:grid-cols-2 gap-12 min-w-full">
 					<div in:fly={{ x: -20, duration: 500, delay: 200 }}>
-						<Card class="p-8 shadow-lg min-w-full">
-							{#if ready && afterGenClick && (dashboardProps.dataPayload !== undefined)}
-								<Dashboard dataPayload={dashboardProps.dataPayload} parentReady={ready} />
+						<Card class="p-8 shadow-lg min-w-full h-full my-auto">
+							{#if ready && (dashboardProps.dataPayload !== undefined)}
+								<Label class="flex flex-col items-center justify-center text-2xl font-semibold mb-6"> {generatorName}</Label>
+								<Dashboard dataPayload={dashboardProps.dataPayload} parentReady={ready} parentGeneratorName={generatorName} />
 							{:else}
 								<p>Loading...</p>
 							{/if}
@@ -245,8 +242,8 @@
 												{#if lockGenLinks}
 													<Li>
 														<button
-															onclick={() => handleGenClick(gen)}
-															class="inline-flex items-center rounded-full bg-blue-800/60 px-3 py-1.5 text-sm font-medium text-blue-100 shadow-sm transition-colors hover:bg-blue-800"
+															onclick={() => completed_generators.includes(gen) && handleGenClick(gen)}
+															class="inline-flex items-center rounded-full bg-blue-800/60 px-3 py-1.5 text-sm font-medium text-blue-100 shadow-sm transition-colors {completed_generators.includes(gen) ? 'hover:bg-blue-800 cursor-pointer' : 'opacity-50 cursor-not-allowed'}"
 														>
 															{#if completed_generators.includes(gen)}
 																<span
@@ -256,7 +253,7 @@
 																</span>
 															{:else}
 																<span
-																	class="inline-flex items-center rounded-full bg-red-800/60 px-3 py-1.5 text-sm font-medium text-red-100 shadow-sm transition-colors hover:bg-red-800"
+																	class="inline-flex items-center rounded-full bg-red-800/60 px-3 py-1.5 text-sm font-medium text-red-100 shadow-sm transition-colors"
 																>
 																	{gen}
 																</span>

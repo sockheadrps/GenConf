@@ -87,7 +87,9 @@
 		return data.records;
 	}
 
-	let isFormValid = $derived(
+	let isFormValid: boolean;
+
+	$: isFormValid = !!(
 		selectedGenerator &&
 		selectedDate &&
 		preRunData.battery_vdc &&
@@ -229,7 +231,6 @@
 		const date = new Date();
 		const month = date.toLocaleString('default', { month: 'long' });
 		// return month;
-		console.log(CURRENT_MONTH);
 
 		return CURRENT_MONTH;
 	}
@@ -238,7 +239,6 @@
 
 	async function populateGenerators() {
 		completed_generators = await fetchCompletedGenerators();
-		console.log(completed_generators);
 		try {
 			const uri = 'http://127.0.0.1:8100/generators';
 			const response = await fetch(uri);
@@ -322,7 +322,6 @@
 				leaks: postRunData.leaks === 'Yes'
 			}
 		};
-		console.log('Data to send:', data);
 		const uri = 'http://127.0.0.1:8100/record';
 		const response = await fetch(uri, {
 			method: 'POST',
@@ -424,7 +423,6 @@
 
 	function toggleDropdown() {
 		const dropdownMenu = document.querySelector('.dropdown-menu') as HTMLElement;
-		console.log(dropdownVisible);
 
 		if (dropdownMenu) {
 			dropdownMenu.style.display = dropdownVisible ? 'block' : 'none';
@@ -456,8 +454,6 @@
 				return;
 			} else {
 				const data = await response.json();
-				console.log(data);
-				console.log(data.pre.oil_check);
 				// if data.pre.oil_check is true, then oil_check is unacceptable, otherwise it is acceptable
 				if (data.pre.oil_check) {
 					preRunData = {
@@ -485,22 +481,13 @@
 
 	$effect(() => {
 		if (month && ready && gen !== '') {
-			console.log('getting not', gen);
 			selectedGenerator = gen.replace('GEN-', '');
-			console.log(completed_generators);
 		}
 	});
 
 	$effect(() => {
 		if (selectedGenerator && ready) {
-			console.log('getting data');
 			getSelectedGeneratorData(selectedGenerator, getCurrentMonth().toLowerCase());
-		}
-	});
-
-	$effect(() => {
-		if (preRunData.oil_check) {
-			console.log(preRunData.oil_check);
 		}
 	});
 </script>
@@ -586,10 +573,13 @@
 
 	<!-- Combined Pre-run and Post-run Form -->
 	{#if selectedGenerator}
-		<form onsubmit={e => {
-			e.preventDefault();
-			handleSubmit(e);
-		}} class="mt-4">
+		<form
+			onsubmit={(e) => {
+				e.preventDefault();
+				handleSubmit(e);
+			}}
+			class="mt-4"
+		>
 			<div class="mb-4">
 				<Datepicker bind:value={selectedDate} />
 			</div>
