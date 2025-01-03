@@ -16,7 +16,6 @@
 	import FuelChart from '../components/FuelChart.svelte';
 	import Dashboard from '../components/dashboard.svelte';
 	import { browser } from '$app/environment';
-	import { fuelEstimate, getFuelEstimate } from '../store/fuelstore.js';
 
 	let completed_generators = $state([]);
 	let generators = $state([
@@ -43,8 +42,10 @@
 		'GEN-F3',
 		'GEN-E3'
 	]);
+
+	let CURRENT_MONTH = $state('december');
+
 	async function fetchCompletedGenerators() {
-		// /records/{month} lowercase month
 		const uri = `http://127.0.0.1:8100/records/${CURRENT_MONTH.toLowerCase()}`;
 		const response = await fetch(uri);
 		const data = await response.json();
@@ -57,67 +58,76 @@
 		lockGenLinks = !lockGenLinks;
 	}
 
-  // interface dataPayload {
-  //   [key: string]: {
-  //     generator_name: string;
-  //     dataPoint: FuelEstimate
-  //   }
-  // }
-
-
-	let generatorName = $state('blah');
-	let generatorData: GeneratorData | null = $state(null); // Change 'GeneratorData' to the appropriate type
-
-	let afterGenClick = $state(false);
-
-  function callCompnentBuild() {
-    Dashboard
-  }
-
-	async function handleGenClick(gen: string) {
-		generatorName = gen; // Update generatorName with the clicked generator
-		console.log('generatorName', generatorName);
-		generatorData = await getFuelEstimate(); // Fetch and update generatorData
-		console.log('generatorData', generatorData);
-		afterGenClick = true;
-	}
-
-	$effect(() => {
-		if (afterGenClick && fuel_estimate) {
-			console.log('afterGenClick', afterGenClick);
-			console.log('generatorName', generatorName);
-
-		}
-	});
-
-
-	let fuel_estimate: FuelEstimate | null = $state(null);
-	let CURRENT_MONTH = $state('december');
-	let ready = $state(false);
-
-	type Generator = {
+	interface GeneratorEstimate {
 		generator_name: string;
 		fuel_capacity: number;
 		current_fuel_volume: number;
 		fuel_delta: number;
-	};
+	}
 
-	type FuelEstimate = void | {
-		get_estimates: Record<string, Generator>;
+	interface FuelEstimate {
+		get_estimates: {
+			[key: string]: GeneratorEstimate;
+		};
 		total_fuel_needed: number;
 		estimate_fuel_cost: number;
-	};
+	}
 
+	interface DashboardProps {
+		dataPayload: FuelEstimate;
+	}
+	let dashboardProps: DashboardProps = $state({ dataPayload: {
+		get_estimates: {},
+		total_fuel_needed: 0,
+		estimate_fuel_cost: 0
+	} });
 
+	let fuelEstimate: FuelEstimate = $state({
+		get_estimates: {},
+		total_fuel_needed: 0,
+		estimate_fuel_cost: 0
+	});
 
-  $effect(() => {
-    if (fuel_estimate) {
-      console.log('fuel_estimate', fuel_estimate);
-    }
-  });
+	async function getFuelEstimate() {
+		try {
+			const uri = `http://127.0.0.1:8100/gen_fuel_estimate/december`;
+			const response = await fetch(uri);
+			if (!response.ok) {
+				throw new Error('Failed to fetch data');
+			}
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error('Error fetching fuel estimate:', error);
+			return null;
+		}
+	}
 
+	let generatorName = $state('blah');
+	let generatorData = $state<FuelEstimate | null>(null);
+	let afterGenClick = $state(false);
 
-  
+	async function handleGenClick(gen: string) {
+		generatorName = gen;
+		const response = await getFuelEstimate();
+		if (response) {
+			generatorData = response;
+			dashboardProps = { dataPayload: response };
+			afterGenClick = true;
+		} else {
+			console.error('Failed to get fuel estimate');
+		}
+	}
+
+	let fuel_estimate: FuelEstimate | null = $state(null);
+	let ready = $state(false);
+
+	// $effect(() => {
+	// 	if (afterGenClick &&ready) {
+	// 		console.log('dashboardProps', dashboardProps);
+
+	// 	}
+	// });
 
 
 	onMount(async () => {
@@ -125,15 +135,20 @@
 		if (response.ok) {
 			completed_generators = await response.json();
 		} else {
-			completed_generators = []; // Initialize as empty array instead of null
+			completed_generators = [];
 		}
+
 		try {
-			fuel_estimate = await getFuelEstimate();
+			const fuelEstimateResponse = await getFuelEstimate();
+			if (!fuelEstimateResponse) {
+				throw new Error('Invalid fuel estimate response - response is null or undefined');
+			}
+			dashboardProps = { dataPayload: fuelEstimateResponse };
 		} catch (error) {
 			console.error('Error fetching fuel estimate:', error);
 			fuel_estimate = null;
 		}
-		ready = true; // Set ready to true once data is fetched
+		ready = true;
 	});
 
 	let uncompleted_generators = $derived(
@@ -146,9 +161,7 @@
 		return month;
 	}
 
-	$effect(() => {
-		console.log('Ready state:', ready);
-	});
+
 </script>
 
 {#if ready}
@@ -161,8 +174,8 @@
 				<div class="grid lg:grid-cols-2 gap-12 min-w-full">
 					<div in:fly={{ x: -20, duration: 500, delay: 200 }}>
 						<Card class="p-8 shadow-lg min-w-full">
-							{#if ready}
-								<Dashboard dataPayload={fuel_estimate} />
+							{#if ready && afterGenClick && (dashboardProps.dataPayload !== undefined)}
+								<Dashboard dataPayload={dashboardProps.dataPayload} parentReady={ready} />
 							{:else}
 								<p>Loading...</p>
 							{/if}
