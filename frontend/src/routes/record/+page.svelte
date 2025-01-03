@@ -15,27 +15,25 @@
 		Skeleton,
 		ListPlaceholder
 	} from 'flowbite-svelte';
-	import { fade, fly, scale } from 'svelte/transition';
-
 	import { InfoCircleSolid } from 'flowbite-svelte-icons';
 	import { page } from '$app/state';
 	const month = page.url.searchParams.get('month');
 	const generator = page.url.searchParams.get('gen');
 	// if query param exists, make gen = GEN-generator
 	let gen = '';
+
+	let selectedDate: Date | null = new Date();
+
+	let leaks = ['Yes', 'No'];
+	let oil_check = ['acceptable', 'unacceptable'];
+
+	let generators: string[] = [];
+	let selectedGenerator = '';
 	if (generator) {
-		gen = `GEN-${generator?.charAt(0).toUpperCase() + generator?.slice(1)}`;
+		gen = `${generator?.charAt(0).toUpperCase() + generator?.slice(1)}`;
+		selectedGenerator = gen;
 	}
 
-	let CURRENT_MONTH = $state('december');
-
-	let selectedDate = $state<Date | null>(new Date());
-
-	let leaks = $state(['Yes', 'No']);
-	let oil_check = $state(['acceptable', 'unacceptable']);
-
-	let generators = $state<string[]>([]);
-	let selectedGenerator = $state('');
 	type RunData = {
 		fuel_level: number;
 		battery_vdc: string | undefined;
@@ -45,7 +43,8 @@
 		oil_check: string;
 		notes: string;
 	};
-	let preRunData = $state({
+
+	let preRunData: RunData = {
 		fuel_level: 50,
 		battery_vdc: '',
 		run_hours: undefined,
@@ -53,8 +52,8 @@
 		leaks: false,
 		oil_check: oil_check[0],
 		notes: ''
-	});
-	let postRunData = $state({
+	};
+	let postRunData: RunData = {
 		fuel_level: 50,
 		battery_vdc: '',
 		run_hours: undefined,
@@ -62,22 +61,22 @@
 		leaks: false,
 		oil_check: oil_check[0],
 		notes: ''
-	});
+	};
 
-	let batteryVdcError = $state(false);
-	let postBatteryVdcError = $state(false);
-	let runHoursError = $state(false);
-	let preRunHoursError = $state(false);
-	let postRunHoursError = $state(false);
-	let coolantTempError = $state(false);
-	let postCoolantTempError = $state(false);
-	let formError = $state(false);
-	let coolantTempAlert = $state(false);
-	let coolantTempAlertShown = $state(false);
-	let runHoursAlert = $state(false);
-	let runHoursAlertShown = $state(false);
+	let batteryVdcError = false;
+	let postBatteryVdcError = false;
+	let runHoursError = false;
+	let preRunHoursError = false;
+	let postRunHoursError = false;
+	let coolantTempError = false;
+	let postCoolantTempError = false;
+	let formError = false;
+	let coolantTempAlert = false;
+	let coolantTempAlertShown = false;
+	let runHoursAlert = false;
+	let runHoursAlertShown = false;
 
-	let completed_generators = $state<string[]>([]);
+	let completed_generators: string[] = [];
 
 	async function fetchCompletedGenerators() {
 		// /records/{month} lowercase month
@@ -87,9 +86,7 @@
 		return data.records;
 	}
 
-	let isFormValid: boolean;
-
-	$: isFormValid = !!(
+	$: isFormValid =
 		selectedGenerator &&
 		selectedDate &&
 		preRunData.battery_vdc &&
@@ -104,8 +101,7 @@
 		!preRunHoursError &&
 		!postRunHoursError &&
 		!coolantTempError &&
-		!postCoolantTempError
-	);
+		!postCoolantTempError;
 
 	function validateBatteryVdc(value: string | undefined, isPost: boolean = false) {
 		if (value === undefined) {
@@ -231,14 +227,14 @@
 		const date = new Date();
 		const month = date.toLocaleString('default', { month: 'long' });
 		// return month;
-
-		return CURRENT_MONTH;
+		return "december"
 	}
 
-	let ready = $state(false);
+	let ready = false;
 
 	async function populateGenerators() {
 		completed_generators = await fetchCompletedGenerators();
+		console.log(completed_generators);
 		try {
 			const uri = 'http://127.0.0.1:8100/generators';
 			const response = await fetch(uri);
@@ -312,7 +308,7 @@
 		const data = {
 			generator: selectedGenerator,
 			date: selectedDate,
-			month: month ? month : getCurrentMonth(),
+			month: getCurrentMonth(),
 			preRunData: {
 				...preRunData,
 				leaks: preRunData.leaks === 'Yes'
@@ -322,6 +318,7 @@
 				leaks: postRunData.leaks === 'Yes'
 			}
 		};
+		console.log('Data to send:', data);
 		const uri = 'http://127.0.0.1:8100/record';
 		const response = await fetch(uri, {
 			method: 'POST',
@@ -333,7 +330,7 @@
 		if (response.ok) {
 			await populateGenerators();
 			selectedGenerator = '';
-			selectedDate = new Date();
+			selectedDate = '';
 			preRunData = {
 				fuel_level: 50,
 				battery_vdc: '',
@@ -406,11 +403,14 @@
 			// Add click handler for menu items
 			dropdownMenu?.addEventListener('click', (e) => {
 				if (dropdownMenu) {
+					console.log('closing dropdown');
 					dropdownMenu.style.display = 'none';
 				}
 			});
 		}
+
 		ready = true;
+
 	});
 
 	// if ready re-order the generators, and have the completed generators at the bottom
@@ -423,11 +423,13 @@
 
 	function toggleDropdown() {
 		const dropdownMenu = document.querySelector('.dropdown-menu') as HTMLElement;
+		console.log(dropdownVisible);
 
 		if (dropdownMenu) {
 			dropdownMenu.style.display = dropdownVisible ? 'block' : 'none';
 		}
 	}
+
 	async function getSelectedGeneratorData(selectedGenerator: string, month: string) {
 		if (!ready) return;
 		const uri = `http://127.0.0.1:8100/gen_data/${month}/${selectedGenerator}`;
@@ -454,6 +456,8 @@
 				return;
 			} else {
 				const data = await response.json();
+				console.log(data);
+				console.log(data.pre.oil_check);
 				// if data.pre.oil_check is true, then oil_check is unacceptable, otherwise it is acceptable
 				if (data.pre.oil_check) {
 					preRunData = {
@@ -478,24 +482,14 @@
 			console.error('Error fetching generator data:', error);
 		}
 	}
-
-	$effect(() => {
-		if (month && ready && gen !== '') {
-			selectedGenerator = gen.replace('GEN-', '');
-		}
-	});
-
-	$effect(() => {
-		if (selectedGenerator && ready) {
-			getSelectedGeneratorData(selectedGenerator, getCurrentMonth().toLowerCase());
-		}
-	});
+	$: if (ready && selectedGenerator) {
+		getSelectedGeneratorData(selectedGenerator, getCurrentMonth());
+	}
 </script>
 
 <div
 	class="container z-10 mx-auto mt-10 min-h-[80vh] max-w-5xl rounded-lg bg-gray-900 p-6 shadow-lg"
 	class:hidden={!ready}
-	in:fade={{ duration: 300 }}
 >
 	<Badge large color="indigo">{getCurrentMonth()}</Badge>
 
@@ -503,7 +497,7 @@
 		<div
 			class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 			role="presentation"
-			onclick={() => (coolantTempAlert = false)}
+			on:click={() => (coolantTempAlert = false)}
 		>
 			<Alert color="red" dismissable class="max-w-md" on:dismiss={() => (coolantTempAlert = false)}>
 				<InfoCircleSolid slot="icon" class="h-5 w-5" />
@@ -516,7 +510,7 @@
 		<div
 			class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
 			role="presentation"
-			onclick={() => (runHoursAlert = false)}
+			on:click={() => (runHoursAlert = false)}
 		>
 			<Alert color="red" dismissable class="max-w-md" on:dismiss={() => (runHoursAlert = false)}>
 				<InfoCircleSolid slot="icon" class="h-5 w-5" />
@@ -555,7 +549,7 @@
 								completed_generators.includes(generator)
 									? 'text-green-500'
 									: ''}"
-								onclick={() => {
+								on:click={() => {
 									selectedGenerator = generator;
 									toggleDropdown();
 								}}
@@ -573,13 +567,7 @@
 
 	<!-- Combined Pre-run and Post-run Form -->
 	{#if selectedGenerator}
-		<form
-			onsubmit={(e) => {
-				e.preventDefault();
-				handleSubmit(e);
-			}}
-			class="mt-4"
-		>
+		<form on:submit|preventDefault={handleSubmit} class="mt-4">
 			<div class="mb-4">
 				<Datepicker bind:value={selectedDate} />
 			</div>
@@ -678,9 +666,8 @@
 								bind:value={preRunData.leaks}
 								class="mt-2 w-full rounded-md border border-gray-600 bg-gray-800 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
-								{#each leaks as leak}
-									<option value={leak}>{leak}</option>
-								{/each}
+								<option value={false}>No</option>
+								<option value={true}>Yes</option>
 							</Select>
 						</div>
 						<div>
@@ -805,9 +792,8 @@
 								bind:value={postRunData.leaks}
 								class="mt-2 w-full rounded-md border border-gray-600 bg-gray-800 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
-								{#each leaks as leak}
-									<option value={leak}>{leak}</option>
-								{/each}
+								<option value={false}>No</option>
+								<option value={true}>Yes</option>
 							</Select>
 						</div>
 						<div>
@@ -835,7 +821,7 @@
 			<div class="mt-8">
 				<Button
 					type="submit"
-					onclick={handleSubmit}
+					on:click={handleSubmit}
 					disabled={!isFormValid}
 					class="bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 w-full rounded-md px-4 py-3 text-gray-100 focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50"
 				>

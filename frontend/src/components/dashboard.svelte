@@ -1,4 +1,6 @@
+<svelte:options runes={false} />
 <script lang="ts">
+  
 	import { onDestroy } from 'svelte';
 
 	interface FuelEstimate {
