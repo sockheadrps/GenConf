@@ -1,2 +1,0 @@
-from app
-quarto render \quarto_\genfuel.qmd

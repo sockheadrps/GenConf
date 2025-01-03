@@ -1,5 +1,5 @@
 .venv/
-# all files in data
+backend/app/data/reports/**/*
 
 # typical python ignores
 __pycache__/
